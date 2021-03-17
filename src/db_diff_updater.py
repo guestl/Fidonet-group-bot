@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# helper for work with database
 import sqlite3
 
 import config

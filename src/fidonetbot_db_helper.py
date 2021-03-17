@@ -25,6 +25,7 @@ class fidonetbot_db_helper:
 
     def __init__(self, dbname=config.dbname):
         self.dbname = dbname
+
         logger.debug(dbname)
         try:
             self.connection = sqlite3.connect(dbname, check_same_thread=False)
@@ -33,6 +34,8 @@ class fidonetbot_db_helper:
             logger.error(dbname)
             logger.error(e)
             raise e
+        self.tg_userId_list = self.get_list_of_tg_userid()
+        logger.info(self.tg_userId_list)
 
     # I got this piece of code from
     #    http://stackoverflow.com/questions/5266430/how-to-see-the-real-sql-query-in-python-cursor-execute"
@@ -70,3 +73,48 @@ class fidonetbot_db_helper:
                 result = data
 
         return result
+
+    def get_list_of_tg_userid(self):
+        try:
+            sql_text = 'SELECT user_id \
+                FROM fidonetlist\
+                WHERE user_id is not Null\
+                group by user_id'
+
+            self.cursor.execute(sql_text)
+        except Exception as e:
+            logger.error(e)
+            logger.error(self.check_sql_string(sql_text, ''))
+
+        result = list()
+        if self.cursor:
+            for row in self.cursor:
+                result.append(row[0])
+        return result
+
+    def update_by_somename(self, user_id, tg_name, tg_username=None):
+        if user_id in self.tg_userId_list:
+            return
+
+        update_by_somename_Query = ("update fidonetlist"
+                                    " set user_id = ?"
+                                    " where tg_name = ?")
+        where_idx = tg_name
+
+        if tg_name:
+            update_by_somename_Query = ("update fidonetlist"
+                                        " set user_id = ?"
+                                        " where tg_username = ?")
+            where_idx = tg_username
+
+        try:
+            self.cursor.execute(update_by_somename_Query, (user_id, where_idx, ))
+            self.connection.commit()
+        except Exception as e:
+            logger.error(e)
+            logger.error(self.check_sql_string(update_by_somename_Query,
+                                               (user_id, tg_username, )))
+
+        self.tg_userId_list = self.get_list_of_tg_userid()
+        logger.info(self.tg_userId_list)
+        return self.cursor.rowcount

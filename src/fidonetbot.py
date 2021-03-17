@@ -46,18 +46,30 @@ def get_fido_addr_from_text(text_with_possible_addr):
         if single_char.isnumeric() or '.' in single_char:
             new_str += single_char
         else:
-            break
+            new_str = 'NA'
+            return {'addr': new_str, 'start': -1}
 
     return {'addr': new_str, 'start': ind}
 
 
 def parse_text_for_fidonet_address(update, context):
     # chat_id = update.message.chat_id
-    # user_id = update.message.from_user.id
+    if update.message.from_user is None:
+        return
+
+    if update.message.from_user.id:
+        user_id = update.message.from_user.id
+    if update.message.from_user.first_name:
+        user_names = update.message.from_user.first_name
+    if update.message.from_user.last_name:
+        user_names += ' ' + update.message.from_user.last_name
+    username = update.message.from_user.username
     # message_id = update.message.message_id
 
     if update.message.text is None:
         return
+
+    database.update_by_somename(user_id, user_names, username)
 
     if '/' in update.message.text:
         addr_dict = get_fido_addr_from_text(update.message.text)
